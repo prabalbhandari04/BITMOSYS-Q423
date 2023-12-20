@@ -1,18 +1,42 @@
-// Import the express module
-const express = require('express');
+// ___________________________________________________Necessary Imports______________________________________________________
+const express = require('express')
+const mongoose = require('mongoose')
+const cors = require('cors')
+const morgan = require('morgan')
+require("dotenv").config();
+const PORT = 5000;
+require('colors');
 
-// Create an instance of the express application
-const app = express();
+// ___________________________________________________Express Server Initated______________________________________________________
+const app = express()
+app.use(morgan('dev'))
+app.use(express.json())
 
-// Define a route
-app.get('/', (req, res) => {
-  res.send('Hello, this is your Node.js server!');
-});
+app.get("/", (req, res, next) => {
+    res.json("Server V1 running in development environment!!");
+  });
 
-// Set the port for the server to listen on
-const port = process.env.PORT || 5000;
 
-// Start the server and listen on the specified port
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
-});
+
+// ____________________________________________________Database Connection______________________________________________________
+// Connect to mongodb
+const URI =  process.env.MONGODB_URL || 'mongodb+srv://viron04:a8eauTTrMWuWar9@cluster0.rzclz8d.mongodb.net/?retryWrites=true&w=majority'
+mongoose.connect(URI, {
+    useCreateIndex: true,
+    useFindAndModify: false,
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+}, err => {
+    if(err) throw err;
+    console.log(
+        `Database connected.`.blue.bold
+      );
+})
+
+
+
+app.listen( process.env.PORT || 5000 , () => {
+    console.log(
+        `Ayuh production Server connected at: ${PORT}`.magenta.bold);
+})
+
