@@ -7,7 +7,7 @@ const walletRoutes = require('./routes/wallet.route');
 const app = express();
 
 // Connect to MongoDB
-mongoose.connect('mongodb+srv://viron04:a8eauTTrMWuWar9@cluster0.rzclz8d.mongodb.net/?retryWrites=true&w=majority', {
+mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
@@ -20,7 +20,7 @@ db.on('error', (error) => {
 });
 
 db.once('open', () => {
-  console.log('Server connected to development environment.');
+  console.log('Server connected to database.');
 });
 
 // Middleware
@@ -29,6 +29,14 @@ app.use(bodyParser.json());
 // Routes
 app.use('/api/v1/crypto', cryptoRoutes);
 app.use('/api/v1/wallet', walletRoutes);
+
+// New route to check if the server is running in production
+app.get('/', (req, res) => {
+  const environment = process.env.NODE_ENV || 'development';
+  res.json({ message: `Server running on ${environment} environment` });
+});
+
+
 // Start the server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
