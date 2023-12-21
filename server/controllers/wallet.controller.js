@@ -49,7 +49,74 @@ exports.buyCrypto = async (req, res) => {
 
     await walletArray.save();
 
-    res.status(201).json({ message: 'Crypto bought successfully', wallet: walletArray });
+    res.status(200).json({ message: `Congrats on your purchase of ${req.body.quantity} coins of ${crypto.symbol}!`, wallet: walletArray });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+
+
+// Exchange crypto coins
+exports.exchangeCrypto = async (req, res) => {
+  const sourceCryptoId = req.params.id;
+  const exchangeQuantity = req.body.quantity;
+
+  try {
+    // Find the source crypto based on its ID
+    const sourceCrypto = await Crypto.findById(sourceCryptoId);
+
+    if (!sourceCrypto) {
+      return res.status(404).json({ message: 'Crypto Coin not found' });
+    }
+
+    // Find the wallet entry for the source crypto
+    const wallet = await Wallet.findOne({ 'coins.crypto': sourceCryptoId });
+
+    if (!wallet) {
+      return res.status(404).json({ message: 'Crypto not found in wallet' });
+    }
+
+    // Check if there are enough coins to exchange
+    const sourceCoin = wallet.coins.find(coin => coin.crypto.equals(sourceCryptoId));
+    if (!sourceCoin || sourceCoin.quantity < exchangeQuantity) {
+      return res.status(400).json({ message: 'Not enough coins to exchange' });
+    }
+
+    // Assuming the destination crypto ID is provided in the request body
+    const destinationCryptoId = req.body.destinationCryptoId;
+
+    // Find the destination crypto based on its ID
+    const destinationCrypto = await Crypto.findById(destinationCryptoId);
+
+    if (!destinationCrypto) {
+      return res.status(404).json({ message: 'Destination Crypto not found' });
+    }
+
+    // Update the wallet by reducing the quantity of the source crypto
+    sourceCoin.quantity -= exchangeQuantity;
+
+    // Update or add the destination crypto in the wallet
+    const destinationCoin = wallet.coins.find(coin => coin.crypto.equals(destinationCryptoId));
+    if (destinationCoin) {
+      destinationCoin.quantity += exchangeQuantity;
+    } else {
+      // If the destination crypto is not in the wallet, add it
+      wallet.coins.push({
+        crypto: destinationCryptoId,
+        cryptoName: destinationCrypto.name,
+        cryptoSymbol: destinationCrypto.symbol,
+        cryptoLogo: destinationCrypto.image,
+        quantity: exchangeQuantity,
+      });
+    }
+    console.log(destinationCoin)
+    console.log(sourceCrypto)
+    // Save the changes to the wallet
+    await wallet.save();
+
+    res.status(201).json({ message: `${req.body.quantity} ${sourceCrypto.symbol} coins exchanged successfully with ${req.body.quantity} ${destinationCoin.cryptoSymbol} coins!`, wallet });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal Server Error' });
