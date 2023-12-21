@@ -2,11 +2,15 @@
 const Crypto = require('../models/cryptoCoin.model');
 const Wallet = require('../models/wallet.model');
 
-// Buy crypto and update wallet
 exports.buyCrypto = async (req, res) => {
   const cryptoId = req.params.id;
+  const requestedQuantity = req.body.quantity;
 
   try {
+    if (requestedQuantity <= 0) {
+      return res.status(400).json({ message: 'Quantity must be greater than zero' });
+    }
+
     // Find the crypto based on its ID
     const crypto = await Crypto.findById(cryptoId);
 
@@ -25,7 +29,7 @@ exports.buyCrypto = async (req, res) => {
           cryptoName: crypto.name,
           cryptoSymbol: crypto.symbol,
           cryptoLogo: crypto.image,
-          quantity: req.body.quantity,
+          quantity: requestedQuantity,
         }]
       });
     } else {
@@ -39,24 +43,22 @@ exports.buyCrypto = async (req, res) => {
           cryptoName: crypto.name,
           cryptoSymbol: crypto.symbol,
           cryptoLogo: crypto.image,
-          quantity: req.body.quantity,
+          quantity: requestedQuantity,
         });
       } else {
         // If the wallet for the current crypto exists, update the quantity
-        existingWallet.quantity += req.body.quantity;
+        existingWallet.quantity += requestedQuantity;
       }
     }
 
     await walletArray.save();
 
-    res.status(200).json({ message: `Congrats on your purchase of ${req.body.quantity} coins of ${crypto.symbol}!`, wallet: walletArray });
+    res.status(200).json({ message: `Congrats on your purchase of ${requestedQuantity} coins of ${crypto.symbol}!`, wallet: walletArray });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
-
-
 
 // Exchange crypto coins
 exports.exchangeCrypto = async (req, res) => {
@@ -64,6 +66,10 @@ exports.exchangeCrypto = async (req, res) => {
   const exchangeQuantity = req.body.quantity;
 
   try {
+    if (exchangeQuantity <= 0) {
+      return res.status(400).json({ message: 'Quantity must be greater than zero' });
+    }
+
     // Find the source crypto based on its ID
     const sourceCrypto = await Crypto.findById(sourceCryptoId);
 
@@ -111,14 +117,14 @@ exports.exchangeCrypto = async (req, res) => {
         quantity: exchangeQuantity,
       });
     }
-    console.log(destinationCoin)
-    console.log(sourceCrypto)
+
     // Save the changes to the wallet
     await wallet.save();
 
-    res.status(201).json({ message: `${req.body.quantity} ${sourceCrypto.symbol} coins exchanged successfully with ${req.body.quantity} ${destinationCoin.cryptoSymbol} coins!`, wallet });
+    res.status(201).json({ message: `${exchangeQuantity} ${sourceCrypto.symbol} coins exchanged successfully with ${exchangeQuantity} ${destinationCoin.cryptoSymbol} coins!`, wallet });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
+

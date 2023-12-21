@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 
-
 const walletSchema = new mongoose.Schema({
   coins: [
     {
@@ -15,12 +14,18 @@ const walletSchema = new mongoose.Schema({
       cryptoSymbol: {
         type: String,
       },
-      cryptoLogo: { // Corrected field name
+      cryptoLogo: {
         type: String,
       },
       quantity: {
         type: Number,
         default: 0,
+        validate: {
+          validator: function(value) {
+            return value >= 0;
+          },
+          message: 'Quantity cannot be less than zero',
+        },
       },
       createdAt: {
         type: Date,
