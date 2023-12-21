@@ -1,42 +1,36 @@
-// ___________________________________________________Necessary Imports______________________________________________________
-const express = require('express')
-const mongoose = require('mongoose')
-const cors = require('cors')
-const morgan = require('morgan')
-require("dotenv").config();
-const PORT = 5000;
-require('colors');
+// app.js
+const express = require('express');
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
+const cryptoRoutes = require('./routes/cryptoCoin.route');
+const walletRoutes = require('./routes/wallet.route');
+const app = express();
 
-// ___________________________________________________Express Server Initated______________________________________________________
-const app = express()
-app.use(morgan('dev'))
-app.use(express.json())
+// Connect to MongoDB
+mongoose.connect('mongodb+srv://viron04:a8eauTTrMWuWar9@cluster0.rzclz8d.mongodb.net/?retryWrites=true&w=majority', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
-app.get("/", (req, res, next) => {
-    res.json("Server V1 running in development environment!!");
-  });
+// Access the connection object and handle events
+const db = mongoose.connection;
 
+db.on('error', (error) => {
+  console.error('MongoDB connection error:', error);
+});
 
+db.once('open', () => {
+  console.log('Server connected to development environment.');
+});
 
-// ____________________________________________________Database Connection______________________________________________________
-// Connect to mongodb
-const URI =  process.env.MONGODB_URL || 'mongodb+srv://viron04:a8eauTTrMWuWar9@cluster0.rzclz8d.mongodb.net/?retryWrites=true&w=majority'
-mongoose.connect(URI, {
-    useCreateIndex: true,
-    useFindAndModify: false,
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}, err => {
-    if(err) throw err;
-    console.log(
-        `Database connected.`.blue.bold
-      );
-})
+// Middleware
+app.use(bodyParser.json());
 
-
-
-app.listen( process.env.PORT || 5000 , () => {
-    console.log(
-        `Ayuh production Server connected at: ${PORT}`.magenta.bold);
-})
-
+// Routes
+app.use('/api/v1/crypto', cryptoRoutes);
+app.use('/api/v1/wallet', walletRoutes);
+// Start the server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
