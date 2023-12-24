@@ -16,8 +16,8 @@ next();
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, {
-useNewUrlParser: true,
-useUnifiedTopology: true,
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
 });
 
 // Access the connection object and handle events

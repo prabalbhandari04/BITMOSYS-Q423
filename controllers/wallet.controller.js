@@ -128,3 +128,41 @@ exports.exchangeCrypto = async (req, res) => {
   }
 };
 
+
+exports.getWalletCombined = async (req, res) => {
+  try {
+    // Find all wallet entries
+    const wallets = await Wallet.find();
+
+    if (!wallets || wallets.length === 0) {
+      return res.status(404).json({ message: 'Wallets not found' });
+    }
+
+    // Calculate total number of coins across all wallets
+    const totalCoins = wallets.reduce((acc, wallet) => acc + wallet.coins.length, 0);
+
+    // Extract distinct coins
+    const distinctCoins = Array.from(new Set(wallets.flatMap(wallet => wallet.coins.map(coin => coin.crypto))));
+
+    // Calculate total coins in all wallets
+    const totalCoinsInWallet = wallets.reduce((acc, wallet) => {
+      return acc + wallet.coins.reduce((coinAcc, coin) => coinAcc + coin.quantity, 0);
+    }, 0);
+
+    // Include total coins in the response
+    const response = {
+      totalCoins,
+      distinctCoins,
+      walletDetails: {
+        ...wallets[0]._doc,
+        totalCoinsInWallet
+      }
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
