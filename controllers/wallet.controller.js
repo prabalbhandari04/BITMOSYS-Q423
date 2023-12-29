@@ -64,6 +64,7 @@ exports.buyCrypto = async (req, res) => {
 exports.exchangeCrypto = async (req, res) => {
   const sourceCryptoId = req.params.id;
   const exchangeQuantity = req.body.quantity;
+  const destinationCryptoId = req.body.destinationCryptoId;
 
   try {
     if (exchangeQuantity <= 0) {
@@ -74,24 +75,26 @@ exports.exchangeCrypto = async (req, res) => {
     const sourceCrypto = await Crypto.findById(sourceCryptoId);
 
     if (!sourceCrypto) {
-      return res.status(404).json({ message: 'Crypto Coin not found' });
+      return res.status(404).json({ message: 'Source Crypto Coin not found' });
     }
 
     // Find the wallet entry for the source crypto
     const wallet = await Wallet.findOne({ 'coins.crypto': sourceCryptoId });
 
     if (!wallet) {
-      return res.status(404).json({ message: 'Crypto not found in wallet' });
+      return res.status(404).json({ message: 'Source Crypto not found in wallet' });
     }
 
     // Check if there are enough coins to exchange
     const sourceCoin = wallet.coins.find(coin => coin.crypto.equals(sourceCryptoId));
     if (!sourceCoin || sourceCoin.quantity < exchangeQuantity) {
-      return res.status(400).json({ message: 'Not enough coins to exchange' });
+      return res.status(400).json({ message: 'Not enough coins of source crypto to exchange' });
     }
 
-    // Assuming the destination crypto ID is provided in the request body
-    const destinationCryptoId = req.body.destinationCryptoId;
+    // Check if source and destination crypto IDs are the same
+    if (sourceCryptoId.equals(destinationCryptoId)) {
+      return res.status(400).json({ message: 'Source and destination crypto IDs cannot be the same' });
+    }
 
     // Find the destination crypto based on its ID
     const destinationCrypto = await Crypto.findById(destinationCryptoId);
@@ -121,13 +124,12 @@ exports.exchangeCrypto = async (req, res) => {
     // Save the changes to the wallet
     await wallet.save();
 
-    res.status(201).json({ message: `${exchangeQuantity} ${sourceCrypto.symbol} coins exchanged successfully with ${exchangeQuantity} ${destinationCoin.cryptoSymbol} coins!`, wallet });
+    res.status(201).json({ message: `${exchangeQuantity} ${sourceCrypto.symbol} coins exchanged successfully with ${exchangeQuantity} ${destinationCrypto.symbol} coins!`, wallet });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
-
 
 exports.getWalletCombined = async (req, res) => {
   try {
@@ -138,15 +140,22 @@ exports.getWalletCombined = async (req, res) => {
       return res.status(404).json({ message: 'Wallets not found' });
     }
 
-    // Calculate total number of coins across all wallets
-    const totalCoins = wallets.reduce((acc, wallet) => acc + wallet.coins.length, 0);
+    // Filter out coins with quantity zero and calculate total number of coins across all wallets
+    const totalCoins = wallets.reduce((acc, wallet) => {
+      const validCoins = wallet.coins.filter(coin => coin.quantity > 0);
+      return acc + validCoins.length;
+    }, 0);
 
-    // Extract distinct coins
-    const distinctCoins = Array.from(new Set(wallets.flatMap(wallet => wallet.coins.map(coin => coin.crypto))));
+    // Extract distinct coins from valid coins
+    const distinctCoins = Array.from(new Set(wallets.flatMap(wallet => {
+      const validCoins = wallet.coins.filter(coin => coin.quantity > 0);
+      return validCoins.map(coin => coin.crypto);
+    })));
 
-    // Calculate total coins in all wallets
+    // Calculate total coins in all wallets considering only coins with quantity greater than zero
     const totalCoinsInWallet = wallets.reduce((acc, wallet) => {
-      return acc + wallet.coins.reduce((coinAcc, coin) => coinAcc + coin.quantity, 0);
+      const validCoins = wallet.coins.filter(coin => coin.quantity > 0);
+      return acc + validCoins.reduce((coinAcc, coin) => coinAcc + coin.quantity, 0);
     }, 0);
 
     // Include total coins in the response
@@ -165,4 +174,3 @@ exports.getWalletCombined = async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
-
