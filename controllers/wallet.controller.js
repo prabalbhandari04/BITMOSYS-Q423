@@ -91,11 +91,6 @@ exports.exchangeCrypto = async (req, res) => {
       return res.status(400).json({ message: 'Not enough coins of source crypto to exchange' });
     }
 
-    // Check if source and destination crypto IDs are the same
-    if (sourceCryptoId.equals(destinationCryptoId)) {
-      return res.status(400).json({ message: 'Source and destination crypto IDs cannot be the same' });
-    }
-
     // Find the destination crypto based on its ID
     const destinationCrypto = await Crypto.findById(destinationCryptoId);
 
